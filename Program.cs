@@ -7,12 +7,22 @@ using System.Text;
 
 
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
+// Add CORS policy to allow requests from React app
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp",
+        policy => policy.WithOrigins("http://localhost:3000")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod());
+});
 
 
 // Add JWT Authentication setup
@@ -58,9 +68,11 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
-app.MapControllers();
-app.UseAuthentication();
-app.UseAuthorization();
 
+app.UseCors("AllowReactApp"); //Allow CORS for React app
+app.UseAuthentication();       //validate JWT tokens
+app.UseAuthorization();         //enforce access rules
+
+app.MapControllers();
 
 app.Run();
