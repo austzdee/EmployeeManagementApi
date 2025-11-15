@@ -6,7 +6,7 @@
     namespace EmployeeManagementApi.Controllers
     {
 
-        [Authorize(Roles ="HR")] 
+        [Authorize(Roles ="HR,Admin")] 
         [Route("api/[controller]")]
         [ApiController]
         public class EmployeesController : ControllerBase

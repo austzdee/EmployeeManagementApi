@@ -5,9 +5,12 @@ using System.Security.Claims;
 using System.Text;
 using EmployeeManagementApi.Data;
 using EmployeeManagementApi.Models;
+using BCrypt.Net;
 
 namespace EmployeeManagementApi.Controllers
 {
+    
+
     [Route("api/[controller]")]
     [ApiController]
     public class UserController : ControllerBase
@@ -21,15 +24,31 @@ namespace EmployeeManagementApi.Controllers
             _configuration = configuration;
         }
 
+        // hash password before saving
+        [HttpPost("register")]
+        public IActionResult Register([FromBody] User user)
+        {
+            if (_context.Users.Any(u => u.Username == user.Username))
+                return Conflict("Username already exists");
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
+            _context.Users.Add(user);
+            _context.SaveChanges();
+
+            return CreatedAtAction(nameof(Login), new { username = user.Username });
+        }
+
         [HttpPost("login")]
         public IActionResult Login([FromBody] User login)
         {
+            // find user by username only
             var user = _context.Users.FirstOrDefault(u =>
-                u.Username == login.Username && u.PasswordHash == login.PasswordHash);
+                u.Username == login.Username);
 
-            if (user == null)
+            // verify password
+            if (user == null || !BCrypt.Net.BCrypt.Verify(login.PasswordHash, user.PasswordHash))
                 return Unauthorized("Invalid credentials");
-
+            // generate JWT token
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]);
 
@@ -38,7 +57,7 @@ namespace EmployeeManagementApi.Controllers
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim(ClaimTypes.Name, user.Username),
-                    new Claim(ClaimTypes.Role, "Admin") // You can customize roles here
+                    new Claim(ClaimTypes.Role, user.Role) // You can customize roles here
                 }),
                 Expires = DateTime.UtcNow.AddHours(1),
                 Issuer = _configuration["Jwt:Issuer"],
