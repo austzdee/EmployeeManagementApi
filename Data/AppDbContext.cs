@@ -24,6 +24,14 @@ namespace EmployeeManagementApi.Data
                 PasswordHash = "admin123", // In production, use a hashed password
                 Email = "admin@example.com",
                 Role = "Admin"
+            },
+            new User
+            {
+                Id = 2,
+                Username = "hr",
+                PasswordHash = "hr123", // In production, use a hashed password
+                Email = "hr@example.com",
+                Role = "HR"
             });
         }
     }
